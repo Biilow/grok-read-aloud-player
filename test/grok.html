@@ -1,0 +1,61 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>Mock Grok read aloud</title>
+<script src="../content.js"></script>
+<style>
+  body { margin: 0; font: 15px/1.6 system-ui; background: #0e0e10; color: #e8e8ea; }
+  main { max-width: 760px; margin: 0 auto; padding: 40px 24px 220px; }
+  .bottom { position: fixed; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 12px; }
+  /* Grok-like classes/colors */
+  .flex { display: flex; } .flex-row { flex-direction: row; } .rounded-full { border-radius: 9999px; }
+  .pill { border: 1px solid #2c2c30; padding: 2px; background: #1b1b1e; box-shadow: 0 1px 2px rgba(0,0,0,.3); color: #e8e8ea; align-items: center; }
+  .pill button { all: unset; cursor: pointer; height: 44px; min-width: 44px; display: grid; place-items: center; border-radius: 9999px; padding: 0 10px; box-sizing: border-box; }
+  .composer { width: min(1000px, 100%); height: 110px; border-radius: 28px; background: #1b1b1e; border: 1px solid #2c2c30; padding: 18px 24px; box-sizing: border-box; color: #888; }
+  .light body, body.light { background: #fff; color: #111; }
+  body.light .pill, body.light .composer { background: #fff; border-color: #e3e3e6; color: #111; }
+</style>
+</head>
+<body>
+<main>
+  <p>Mock of grok.com's read-aloud flow (same request path, same <code>new Audio()</code> + pill markup).</p>
+  <button id="read">🔊 Read aloud</button> <button id="theme">toggle light/dark</button>
+  <div id="response-test-1"><div class="relative response-content-markdown markdown">
+    <p>Jenkins argues that we should separate romantic love from happiness. Culture treats happiness as a condition of love, through ideas like <em>“happily ever after,”</em> so sadness inside a relationship gets read as failure. She denies that. Parents can be exhausted and sad without that meaning they do not love their children, and romantic love should be allowed the same range. What matters is meaningfulness, and love as something we do with an autonomous person, not a prize whose job is to make us happy. Sadness can still be a reason to leave. It is just not, by itself, proof that the love was fake.</p>
+    <h2>Five questions worth rehearsing out loud</h2>
+    <ol><li>What is Eros, on Socrates’ correction of Agathon, and why does that mean Eros is not beautiful?</li>
+      <li>Walk through <strong>Diotima’s ladder</strong>, and say whether the particular person is instrumental.</li>
+      <li>Explain Aristotle’s three friendships, and why only one is “perfect.”</li></ol>
+  </div><button aria-label="Copy">⧉</button></div>
+</main>
+<div class="bottom">
+  <div id="pillSlot"></div>
+  <div class="composer flex flex-row rounded-full" style="border-radius:28px;justify-content:space-between">Ask anything <span><button aria-label="Attach">+</button> <button aria-label="Stop">■</button> <button aria-label="Mode">Expert</button></span></div>
+</div>
+<script>
+  // Mirrors Grok's tts-store: new Audio(), src = streaming endpoint, playbackRate from store, play()
+  const rates = [1, 1.5, 2, 0.5];
+  let player = null, rate = 1;
+  function mountPill() {
+    pillSlot.innerHTML = `<div class="flex flex-row rounded-full pill">
+      <button aria-label="Play" id="pp">⏸</button><button aria-label="Voice">Carina ▾</button>
+      <button aria-label="Playback rate" id="pr"><span>${rate}x</span></button><button aria-label="Stop" id="st">✕</button></div>`;
+    pp.onclick = () => player.paused ? player.play() : player.pause();
+    pr.onclick = () => { rate = rates[(rates.indexOf(rate) + 1) % rates.length]; player.playbackRate = rate; pr.firstChild.textContent = rate + 'x'; };
+    st.onclick = stop;
+  }
+  function stop() { if (player) { player.pause(); player = null; } pillSlot.innerHTML = ''; }
+  read.onclick = () => {
+    stop();
+    player = window.au = new Audio();
+    player.src = '/http/app-chat/read-response-audio-file/test-1?voiceId=carina&t=' + Date.now() + location.search.replace('?', '&');
+    player.playbackRate = rate;
+    player.addEventListener('ended', stop);
+    player.addEventListener('play', () => window.pp && (pp.textContent = '⏸'));
+    player.addEventListener('pause', () => window.pp && (pp.textContent = '▶'));
+    player.play();
+    setTimeout(mountPill, 120); // React mounts the pill a beat after play()
+  };
+  theme.onclick = () => document.body.classList.toggle('light');
+</script>
+</body>
+</html>
